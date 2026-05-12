@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - database.test.local
+  resources:
+  - postgresdatabases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - database.test.local
+  resources:
+  - postgresdatabases/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - database.test.local
+  resources:
+  - postgresdatabases/status
+  verbs:
+  - get
+  - patch
+  - update

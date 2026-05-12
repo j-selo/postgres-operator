@@ -13,3 +13,25 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# Build output
+bin/
+dist/
+
+# Temporary cross-build Dockerfile
+Dockerfile.cross
+
+# Environment and secrets
+.env
+.env.*
+*.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,135 +1,109 @@
-# postgres-operator
-// TODO(user): Add simple overview of use/purpose
+# Postgres Operator
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+A Kubernetes operator that automates PostgreSQL database provisioning via a `PostgresDatabase` custom resource. Declare a database, user, and credentials in a CR and the operator creates them on your Postgres instance.
+
+## How it works
+
+The operator watches `PostgresDatabase` resources (API group `database.test.local/v1`). On each reconciliation it:
+
+1. Connects to the Postgres admin instance via the `POSTGRES_ADMIN_URL` environment variable.
+2. Checks whether the target database already exists.
+3. If not, creates the database, user, password, and grants all privileges.
+
+Provisioning is idempotent — if the database already exists the reconciler exits cleanly.
+
+## Custom Resource
+
+```yaml
+apiVersion: database.test.local/v1
+kind: PostgresDatabase
+metadata:
+  name: my-app-db
+spec:
+  database: my_app
+  user: my_app_user
+  password: s3cr3t           # plain-text; prefer passwordSecret in production
+  passwordSecret:
+    name: my-app-db-secret   # Kubernetes Secret containing the password
+```
+
+| Field            | Type   | Description                              |
+|------------------|--------|------------------------------------------|
+| `database`       | string | Name of the Postgres database to create  |
+| `user`           | string | Postgres role/user to create             |
+| `password`       | string | Password for the user                    |
+| `passwordSecret` | object | Reference to a Secret holding the password |
+
+## Prerequisites
+
+- Go v1.24+
+- Docker 17.03+
+- kubectl v1.11.3+
+- A running Kubernetes v1.11.3+ cluster
+- A reachable PostgreSQL instance
 
 ## Getting Started
 
-### Prerequisites
-- go version v1.24.6+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
-
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+### Run locally (against the current kubeconfig cluster)
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/postgres-operator:tag
+POSTGRES_ADMIN_URL="postgres://admin:pass@host:5432/postgres" make run
 ```
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
-
-**Install the CRDs into the cluster:**
+### Deploy to cluster
 
 ```sh
+# Build and push the image
+make docker-build docker-push IMG=<registry>/postgres-operator:tag
+
+# Install CRDs
 make install
-```
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+# Deploy the controller (set POSTGRES_ADMIN_URL in config/manager/manager.yaml)
+make deploy IMG=<registry>/postgres-operator:tag
 
-```sh
-make deploy IMG=<some-registry>/postgres-operator:tag
-```
-
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
-
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
-
-```sh
+# Apply a sample resource
 kubectl apply -k config/samples/
 ```
 
->**NOTE**: Ensure that the samples has default values to test it out.
-
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
+### Uninstall
 
 ```sh
 kubectl delete -k config/samples/
-```
-
-**Delete the APIs(CRDs) from the cluster:**
-
-```sh
 make uninstall
-```
-
-**UnDeploy the controller from the cluster:**
-
-```sh
 make undeploy
 ```
 
+## Development
+
+```sh
+make manifests   # regenerate CRDs, RBAC, webhook configs
+make generate    # regenerate DeepCopy methods
+make fmt         # format code
+make vet         # vet code
+make test        # run unit tests
+```
+
+Run `make help` for the full list of targets.
+
 ## Project Distribution
 
-Following the options to release and provide this solution to the users.
-
-### By providing a bundle with all YAML files
-
-1. Build the installer for the image built and published in the registry:
+### Single YAML bundle
 
 ```sh
-make build-installer IMG=<some-registry>/postgres-operator:tag
+make build-installer IMG=<registry>/postgres-operator:tag
+kubectl apply -f dist/install.yaml
 ```
 
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
-
-2. Using the installer
-
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/postgres-operator/<tag or branch>/dist/install.yaml
-```
-
-### By providing a Helm Chart
-
-1. Build the chart using the optional helm plugin
+### Helm chart
 
 ```sh
 kubebuilder edit --plugins=helm/v2-alpha
+# chart generated under dist/chart/
 ```
-
-2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
-
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-**NOTE:** Run `make help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
 
 ## License
 
 Copyright 2026.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
+Licensed under the Apache License, Version 2.0. See [LICENSE](https://www.apache.org/licenses/LICENSE-2.0) for details.
