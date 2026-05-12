@@ -26,7 +26,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	databasev1 "github.com/j-selo/postgres-operator/api/v1"
-	"github.com/j-selo/postgres-operator/postgres/postgres"
+	"github.com/j-selo/postgres-operator/pkg/postgres"
 )
 
 // PostgresDatabaseReconciler reconciles a PostgresDatabase object
